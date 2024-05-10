@@ -3,49 +3,142 @@ package main
 import (
 	"flag"
 	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 )
 
-func Test_getFileData(t *testing.T) {
-	tests := []struct {
-		name    string
-		want    inputFile
-		wantErr bool
-		osArgs  []string
-	}{
-		{"Default parameters", inputFile{"test.csv", "comma", false}, false, []string{"cmd", "test.csv"}},
-		{"No parameters", inputFile{}, true, []string{"cmd"}},
-		{"Semicolon enabled", inputFile{"test.csv", "semicolon", false}, false, []string{"cmd", "--separator=semicolon", "test.csv"}},
-		{"Pretty enabled", inputFile{"test.csv", "comma", true}, false, []string{"cmd", "--pretty", "test.csv"}},
-		{"Pretty and semicolon enabled", inputFile{"test.csv", "semicolon", true}, false, []string{"cmd", "--pretty", "--separator=semicolon", "test.csv"}},
-		{"Separator not identified", inputFile{}, true, []string{"cmd", "--separator=pipe", "test.csv"}},
-	}
+// func Test_getFileData(t *testing.T) {
+// 	tests := []struct {
+// 		name    string
+// 		want    inputFile
+// 		wantErr bool
+// 		osArgs  []string
+// 	}{
+// 		{"Default parameters", inputFile{"test.csv", "comma", false}, false, []string{"cmd", "test.csv"}},
+// 		{"No parameters", inputFile{}, true, []string{"cmd"}},
+// 		{"Semicolon enabled", inputFile{"test.csv", "semicolon", false}, false, []string{"cmd", "--separator=semicolon", "test.csv"}},
+// 		{"Pretty enabled", inputFile{"test.csv", "comma", true}, false, []string{"cmd", "--pretty", "test.csv"}},
+// 		{"Pretty and semicolon enabled", inputFile{"test.csv", "semicolon", true}, false, []string{"cmd", "--pretty", "--separator=semicolon", "test.csv"}},
+// 		{"Separator not identified", inputFile{}, true, []string{"cmd", "--separator=pipe", "test.csv"}},
+// 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			actualOsArgs := os.Args
-			defer func() {
-				os.Args = actualOsArgs
-				flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError) //flags are now reset
-			}()
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			actualOsArgs := os.Args
+// 			defer func() {
+// 				os.Args = actualOsArgs
+// 				flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError) //flags are now reset
+// 			}()
 
-			os.Args = tt.osArgs
-			got, err := getFileData()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getFileData() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getFileData() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+// 			os.Args = tt.osArgs
+// 			got, err := getFileData()
+// 			if (err != nil) != tt.wantErr {
+// 				t.Errorf("getFileData() error = %v, wantErr %v", err, tt.wantErr)
+// 				return
+// 			}
+// 			if !reflect.DeepEqual(got, tt.want) {
+// 				t.Errorf("getFileData() = %v, want %v", got, tt.want)
+// 			}
+// 		})
+// 	}
+// }
+
+// func Test_processCsvFile(t *testing.T) {
+
+// 	wantMapSlice := []map[string]string{
+// 		{"COL1": "1", "COL2": "2", "COL3": "3"},
+// 		{"COL1": "4", "COL2": "5", "COL3": "6"},
+// 	}
+
+// 	tests := []struct {
+// 		name      string
+// 		csvString string
+// 		separator string
+// 	}{
+// 		{"Comma separator", "COL1,COL2,COL3\n1,2,3\n4,5,6\n", "comma"},
+// 		{"Semicolon separator", "COL1;COL2;COL3\n1;2;3\n4;5;6\n", "semicolon"},
+// 	}
+
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			tmpfile, err := os.CreateTemp("", "test*.csv")
+// 			check(err)
+
+// 			defer os.Remove(tmpfile.Name())
+// 			_, _ = tmpfile.WriteString(tt.csvString)
+// 			tmpfile.Sync()
+
+// 			testFileData := inputFile{
+// 				filepath:  tmpfile.Name(),
+// 				pretty:    false,
+// 				separator: tt.separator,
+// 			}
+
+// 			writerChannel := make(chan map[string]string)
+
+// 			go processCsvFile(testFileData, writerChannel)
+
+// 			for _, wantMap := range wantMapSlice {
+// 				record := <-writerChannel
+// 				if !reflect.DeepEqual(record, wantMap) {
+// 					t.Errorf("processCsvFile() = %v, want %v", record, wantMap)
+// 				}
+// 			}
+// 		})
+// 	}
+// }
+
+// func Test_writeJSONFile(t *testing.T) {
+// 	dataMap := []map[string]string{
+// 		{"COL1": "1", "COL2": "2", "COL3": "3"},
+// 		{"COL1": "4", "COL2": "5", "COL3": "6"},
+// 	}
+// 	tests := []struct {
+// 		csvPath  string
+// 		jsonPath string
+// 		pretty   bool
+// 		name     string
+// 	}{
+// 		{"compact.csv", "compact.json", false, "Compact JSON"},
+// 		{"pretty.csv", "pretty.json", true, "Pretty JSON"},
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+
+// 			writerChannel := make(chan map[string]string)
+// 			done := make(chan bool)
+
+// 			go func() {
+// 				for _, record := range dataMap {
+// 					writerChannel <- record
+// 				}
+// 				close(writerChannel)
+// 			}()
+
+// 			go writeJSONFile(tt.csvPath, writerChannel, done, tt.pretty)
+
+// 			<-done
+
+// 			testOutput, err := os.ReadFile(tt.jsonPath)
+
+// 			if err != nil {
+// 				t.Errorf("writeJSONFile(), Output file got error: %v", err)
+// 			}
+
+// 			defer os.Remove(tt.jsonPath)
+
+// 			wantOutput, err := os.ReadFile(filepath.Join("testJsonFiles", tt.jsonPath))
+// 			check(err)
+
+// 			if (string(testOutput)) != (string(wantOutput)) {
+// 				t.Errorf("writeJSONFile() = %v, want %v", string(testOutput), string(wantOutput))
+// 			}
+// 		})
+// 	}
+// }
 
 func Test_checkIfValidFile(t *testing.T) {
-	tmpfile, err := os.CreateTemp("", "test*.csv")
+	tmpfile, err := os.CreateTemp("", "test*.csr")
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +152,7 @@ func Test_checkIfValidFile(t *testing.T) {
 		wantErr  bool
 	}{
 		{"File does exist", tmpfile.Name(), true, false},
-		{"File does not exist", "nowhere/test.csv", false, true},
+		{"File does not exist", "nowhere/test.csr", false, true},
 		{"File is not csv", "test.txt", false, true},
 	}
 
@@ -77,95 +170,51 @@ func Test_checkIfValidFile(t *testing.T) {
 	}
 }
 
-func Test_processCsvFile(t *testing.T) {
+func Test_loadCA(t *testing.T) {
+	t.Run("load root ca", func(t *testing.T) {
+		got, err := loadCA()
+		notWant := CA{}
 
-	wantMapSlice := []map[string]string{
-		{"COL1": "1", "COL2": "2", "COL3": "3"},
-		{"COL1": "4", "COL2": "5", "COL3": "6"},
-	}
+		if err != nil {
+			t.Errorf("loadCA() error = %v", err)
+			return
+		}
 
-	tests := []struct {
-		name      string
-		csvString string
-		separator string
-	}{
-		{"Comma separator", "COL1,COL2,COL3\n1,2,3\n4,5,6\n", "comma"},
-		{"Semicolon separator", "COL1;COL2;COL3\n1;2;3\n4;5;6\n", "semicolon"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tmpfile, err := os.CreateTemp("", "test*.csv")
-			check(err)
-
-			defer os.Remove(tmpfile.Name())
-			_, _ = tmpfile.WriteString(tt.csvString)
-			tmpfile.Sync()
-
-			testFileData := inputFile{
-				filepath:  tmpfile.Name(),
-				pretty:    false,
-				separator: tt.separator,
-			}
-
-			writerChannel := make(chan map[string]string)
-
-			go processCsvFile(testFileData, writerChannel)
-
-			for _, wantMap := range wantMapSlice {
-				record := <-writerChannel
-				if !reflect.DeepEqual(record, wantMap) {
-					t.Errorf("processCsvFile() = %v, want %v", record, wantMap)
-				}
-			}
-		})
-	}
+		if got == notWant {
+			t.Errorf("loadCA() returned a nil CA")
+			return
+		}
+	})
 }
 
-func Test_writeJSONFile(t *testing.T) {
-	dataMap := []map[string]string{
-		{"COL1": "1", "COL2": "2", "COL3": "3"},
-		{"COL1": "4", "COL2": "5", "COL3": "6"},
-	}
+func Test_getCSR(t *testing.T) {
 	tests := []struct {
-		csvPath  string
-		jsonPath string
-		pretty   bool
-		name     string
+		name    string
+		want    inputFile
+		wantErr bool
+		osArgs  []string
 	}{
-		{"compact.csv", "compact.json", false, "Compact JSON"},
-		{"pretty.csv", "pretty.json", true, "Pretty JSON"},
+		// {"Default parameters", inputFile{"test.csv", "comma", false}, false, []string{"cmd", "test.csv"}},
+		{"No parameters", inputFile{}, true, []string{"cmd"}},
+		{"Valid CSR no args", inputFile{"./exampleFiles/mydomain.com.csr", false, false}, false, []string{"cmd", "./exampleFiles/mydomain.com.csr"}},
+		{"Valid CSR with args", inputFile{"./exampleFiles/mydomain.com.csr", true, true}, false, []string{"cmd", "-flag1", "-flag2", "./exampleFiles/mydomain.com.csr"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
-			writerChannel := make(chan map[string]string)
-			done := make(chan bool)
-
-			go func() {
-				for _, record := range dataMap {
-					writerChannel <- record
-				}
-				close(writerChannel)
+			actualOsArgs := os.Args
+			defer func() {
+				os.Args = actualOsArgs
+				flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError) //flags are now reset
 			}()
 
-			go writeJSONFile(tt.csvPath, writerChannel, done, tt.pretty)
-
-			<-done
-
-			testOutput, err := os.ReadFile(tt.jsonPath)
-
-			if err != nil {
-				t.Errorf("writeJSONFile(), Output file got error: %v", err)
+			os.Args = tt.osArgs
+			got, err := getCSR()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getCSR() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
-
-			defer os.Remove(tt.jsonPath)
-
-			wantOutput, err := os.ReadFile(filepath.Join("testJsonFiles", tt.jsonPath))
-			check(err)
-
-			if (string(testOutput)) != (string(wantOutput)) {
-				t.Errorf("writeJSONFile() = %v, want %v", string(testOutput), string(wantOutput))
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getCSR() = %v, want %v", got, tt.want)
 			}
 		})
 	}

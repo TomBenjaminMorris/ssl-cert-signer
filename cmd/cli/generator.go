@@ -17,6 +17,32 @@ import (
 	"time"
 )
 
+// Helpers
+func exitGracefully(err error) {
+	fmt.Fprintf(os.Stderr, "error: %v\n", err)
+	os.Exit(1)
+}
+
+func check(e error) {
+	if e != nil {
+		exitGracefully(e)
+	}
+}
+
+func checkIfValidFile(filename string) (bool, error) {
+	// Check if file is CSR
+	if fileExtension := filepath.Ext(filename); fileExtension != ".csr" {
+		return false, fmt.Errorf("file %s is not a CSR", filename)
+	}
+
+	// Check if file does exist
+	if _, err := os.Stat(filename); err != nil && os.IsNotExist(err) {
+		return false, fmt.Errorf("file %s does not exist", filename)
+	}
+
+	return true, nil
+}
+
 //go:embed ca_files/rootCA*
 var ca_files embed.FS
 
@@ -55,17 +81,6 @@ type inputFile struct {
 	filepath string
 	flag1    bool
 	flag2    bool
-}
-
-func exitGracefully(err error) {
-	fmt.Fprintf(os.Stderr, "error: %v\n", err)
-	os.Exit(1)
-}
-
-func check(e error) {
-	if e != nil {
-		exitGracefully(e)
-	}
 }
 
 func getCSR() (inputFile, error) {
@@ -140,33 +155,19 @@ func signCSR(input CSR, ca CA) []byte {
 }
 
 func writeCert(cert []byte) {
-	// filepath := "exampleFiles/cert.crt"
-	// certOut, err := os.Create(filepath)
-	// check(err)
+	filepath := "exampleFiles/mydomain.com.crt"
+	certOut, err := os.Create(filepath)
+	check(err)
 
 	if err := pem.Encode(os.Stdout, &pem.Block{Type: "CERTIFICATE", Bytes: cert}); err != nil {
 		log.Fatalf("Failed to write data: %s", err)
 	}
 
-	// if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: cert}); err != nil {
-	// 	log.Fatalf("Failed to write data: %s", err)
-	// }
-
-	// if err := certOut.Close(); err != nil {
-	// 	log.Fatalf("Error closing %s  %s", filepath, err)
-	// }
-}
-
-func checkIfValidFile(filename string) (bool, error) {
-	// Check if file is CSR
-	if fileExtension := filepath.Ext(filename); fileExtension != ".csr" {
-		return false, fmt.Errorf("file %s is not a CSR", filename)
+	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: cert}); err != nil {
+		log.Fatalf("Failed to write data: %s", err)
 	}
 
-	// Check if file does exist
-	if _, err := os.Stat(filename); err != nil && os.IsNotExist(err) {
-		return false, fmt.Errorf("file %s does not exist", filename)
+	if err := certOut.Close(); err != nil {
+		log.Fatalf("Error closing %s  %s", filepath, err)
 	}
-
-	return true, nil
 }
