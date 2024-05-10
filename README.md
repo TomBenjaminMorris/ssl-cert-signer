@@ -1,4 +1,10 @@
 ## Example Usage
+Generate the Root CA key
+`openssl genrsa -des3 -out ./cmd/cli/rootCA.key 4096`
+
+Create and self sign the Root CA Certificate
+`openssl req -x509 -new -nodes -key ./cmd/cli/rootCA.key -sha256 -days 1024 -out ./cmd/cli/rootCA.crt`
+
 Generate dummy CSR and Key
 `cd exampleFiles && ./csr_generation.sh && cd ../`
 
